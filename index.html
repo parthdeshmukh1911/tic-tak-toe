@@ -1,258 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Tic Tac Toe - Difficulty Levels</title>
+<title>Mini Games – IPL Quiz</title>
 
 <style>
 body {
-  background: #0f172a;
-  color: #fff;
+  margin: 0;
   font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-.container {
+  background: #0f172a;
+  color: white;
   text-align: center;
 }
 
-h1 {
+h1 { margin-top: 20px; }
+
+.container { padding: 20px; }
+
+.tiles {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 50px;
+}
+
+.tile {
+  width: 220px;
+  height: 140px;
+  background: #1e293b;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.tile:hover {
+  background: #334155;
+  transform: scale(1.05);
+}
+
+.quiz-box {
+  max-width: 700px;
+  margin: auto;
+}
+
+.option {
+  background: #1e293b;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.option:hover { background: #334155; }
+
+.info {
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.controls button, select {
-  padding: 8px 14px;
-  margin: 5px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-}
-
 button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
   background: #22c55e;
-  color: black;
   font-weight: bold;
-}
-
-select {
-  background: #1e293b;
-  color: white;
-}
-
-.board {
-  display: grid;
-  grid-template-columns: repeat(3, 100px);
-  gap: 10px;
-  margin: 20px auto;
-}
-
-.cell {
-  width: 100px;
-  height: 100px;
-  background: #1e293b;
-  font-size: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   cursor: pointer;
-  border-radius: 8px;
-}
-
-.cell:hover {
-  background: #334155;
-}
-
-.status {
-  margin: 10px;
-  font-size: 18px;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
-  <h1>Tic Tac Toe</h1>
 
-  <div class="controls">
-    <button onclick="startGame('single')">Single Player</button>
-    <button onclick="startGame('multi')">Multi Player</button>
-
-    <select id="difficulty">
-      <option value="easy">Easy</option>
-      <option value="medium">Medium</option>
-      <option value="hard">Hard</option>
-    </select>
+<div id="home" class="container">
+  <h1>Mini Games</h1>
+  <div class="tiles">
+    <div class="tile">Tic Tac Toe</div>
+    <div class="tile" onclick="showLevels()">IPL Quiz</div>
   </div>
+</div>
 
-  <div class="status" id="status">Choose mode</div>
-  <div class="board" id="board"></div>
+<div id="levels" class="container" style="display:none;">
+  <h1>Select Difficulty</h1>
+  <button onclick="startQuiz('easy')">Easy</button>
+  <button onclick="startQuiz('medium')">Medium</button>
+  <button onclick="startQuiz('hard')">Hard</button>
+  <button onclick="startQuiz('extreme')">Extreme</button>
+</div>
 
-  <button onclick="resetGame()">Reset</button>
+<div id="quiz" class="container" style="display:none;">
+  <div class="quiz-box">
+    <div class="info">
+      <div id="qCount"></div>
+      <div id="timer"></div>
+      <div id="score"></div>
+    </div>
+    <h2 id="question"></h2>
+    <div id="options"></div>
+  </div>
 </div>
 
 <script>
-const boardDiv = document.getElementById("board");
-const statusText = document.getElementById("status");
+const timings = { easy:10, medium:15, hard:20, extreme:25 };
+const multiplier = { easy:1, medium:2, hard:3, extreme:5 };
 
-let board = Array(9).fill("");
-let currentPlayer = "X";
-let gameActive = false;
-let mode = "";
-let difficulty = "easy";
+let level, questions, index=0, timer, timeLeft, score=0;
 
-const winCombos = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6]
-];
+// 🔥 80 IPL QUESTIONS (20 EACH LEVEL)
+const questionBank = {
+easy: [
+{q:"Which team won the first IPL season (2008)?", o:["RR","CSK","MI","DC"], a:0},
+{q:"Which player has scored the most IPL runs?", o:["Virat Kohli","Rohit Sharma","Gayle","Dhoni"], a:0},
+{q:"Which team is called Yellow Army?", o:["CSK","MI","KKR","SRH"], a:0},
+{q:"IPL started in which year?", o:["2006","2007","2008","2009"], a:2},
+{q:"Which team has won most IPL titles?", o:["CSK","MI","KKR","RR"], a:1},
+{q:"Who is called Mr IPL?", o:["Dhoni","Rohit","Raina","Kohli"], a:2},
+{q:"Which team represents Bangalore?", o:["RCB","SRH","GT","LSG"], a:0},
+{q:"IPL final has how many overs per side?", o:["10","15","20","25"], a:2},
+{q:"Which trophy is given in IPL?", o:["Border Gavaskar","IPL Trophy","Champions Cup","CL Trophy"], a:1},
+{q:"Which Indian captain won IPL 5 times?", o:["Dhoni","Rohit","Kohli","Gambhir"], a:1},
+// 10 more easy
+{q:"Which team plays at Wankhede?", o:["MI","CSK","RR","KKR"], a:0},
+{q:"Which team won IPL 2022?", o:["GT","RR","CSK","LSG"], a:0},
+{q:"Who is CSK captain most times?", o:["Dhoni","Raina","Jadeja","Ashwin"], a:0},
+{q:"Which team has purple jersey?", o:["KKR","RR","DC","LSG"], a:0},
+{q:"Which IPL team is from Rajasthan?", o:["RR","PBKS","GT","SRH"], a:0},
+{q:"Which team uses lion logo?", o:["CSK","MI","RCB","KKR"], a:0},
+{q:"IPL matches are played in which format?", o:["Test","ODI","T20","T10"], a:2},
+{q:"Which team won IPL 2023?", o:["CSK","GT","MI","RR"], a:0},
+{q:"Which team is based in Hyderabad?", o:["SRH","DC","RR","PBKS"], a:0},
+{q:"Which team is from Punjab?", o:["PBKS","GT","LSG","MI"], a:0},
+],
 
-function startGame(selectedMode) {
-  mode = selectedMode;
-  difficulty = document.getElementById("difficulty").value;
-  resetGame();
-  gameActive = true;
-  statusText.textContent = `Player X turn`;
+medium: [
+{q:"Who hit the first IPL century?", o:["Brendon McCullum","Gayle","Warner","Sehwag"], a:0},
+{q:"Which team has never won IPL?", o:["RCB","CSK","MI","KKR"], a:0},
+{q:"Highest individual IPL score?", o:["175*","158*","147*","140*"], a:0},
+{q:"Which player has most IPL sixes?", o:["Gayle","Pollard","Russell","Rohit"], a:0},
+{q:"Which team won IPL 2016?", o:["SRH","RCB","CSK","MI"], a:0},
+{q:"Which player took first IPL hat-trick?", o:["Balaji","Malinga","Amit Mishra","Harbhajan"], a:0},
+{q:"Which IPL team moved from Delhi to Lucknow?", o:["None","DC","LSG","KTK"], a:0},
+{q:"Who won Orange Cap 2018?", o:["Kane Williamson","Kohli","Warner","Dhawan"], a:0},
+{q:"Which IPL team disbanded after 2011?", o:["KTK","GT","LSG","SRH"], a:0},
+{q:"Who has most IPL wickets?", o:["Malinga","Chahal","Ashwin","Bumrah"], a:0},
+// +10
+{q:"Which team won IPL 2014?", o:["KKR","CSK","MI","RR"], a:0},
+{q:"Which Indian umpire officiated most IPL matches?", o:["Nitin Menon","Anil Chaudhary","VK Sharma","S Ravi"], a:1},
+{q:"Who captained KKR to 2 titles?", o:["Gambhir","Morgan","Dinesh","McCullum"], a:0},
+{q:"Which team won IPL 2010?", o:["CSK","MI","RR","DC"], a:0},
+{q:"Which team had Sachin Tendulkar?", o:["MI","RR","CSK","DC"], a:0},
+{q:"Who hit most sixes in one IPL season?", o:["Gayle","Russell","Buttler","Warner"], a:0},
+{q:"Which team has slogan ‘Play Bold’?", o:["RCB","SRH","GT","LSG"], a:0},
+{q:"Which team won IPL 2012?", o:["KKR","CSK","MI","RR"], a:0},
+{q:"Who won Fair Play most times?", o:["CSK","MI","RR","SRH"], a:0},
+{q:"Which IPL final was played in Chennai most?", o:["CSK","MI","KKR","RR"], a:0},
+],
+
+hard: [
+{q:"Who has best bowling figures in IPL?", o:["Alzarri Joseph","Malinga","Ankit Rajpoot","Chahal"], a:0},
+{q:"First IPL hat-trick by Indian?", o:["Balaji","Amit Mishra","Harbhajan","Chawla"], a:0},
+{q:"Which team won IPL without finishing top 2?", o:["SRH","CSK","MI","KKR"], a:0},
+{q:"Who scored fastest IPL fifty?", o:["KL Rahul","Yusuf Pathan","Gayle","Russell"], a:0},
+{q:"IPL 2009 was played in which country?", o:["South Africa","UAE","India","England"], a:0},
+{q:"Which team had Shane Warne as captain?", o:["RR","DC","MI","CSK"], a:0},
+{q:"Who took first IPL wicket?", o:["Praveen Kumar","Zaheer","Irfan","Agarkar"], a:0},
+{q:"Which player won most MOM awards in IPL?", o:["Gayle","Warner","Dhoni","Russell"], a:1},
+{q:"Which final ended via DLS method?", o:["2014","2009","2011","2023"], a:3},
+{q:"Which team had lowest IPL score?", o:["RR","RCB","DC","KKR"], a:1},
+// +10
+{q:"Who hit first IPL six?", o:["McCullum","Ganguly","Sehwag","Gayle"], a:0},
+{q:"Which IPL season had 10 teams first?", o:["2011","2018","2022","2008"], a:0},
+{q:"Who was first uncapped IPL captain?", o:["Manish Pandey","Rishabh Pant","Hardik","Warne"], a:0},
+{q:"Which team lost most finals?", o:["CSK","MI","RCB","KKR"], a:0},
+{q:"Which team debuted in 2022?", o:["GT","SRH","DC","RR"], a:0},
+{q:"Which IPL final had highest total?", o:["2013","2014","2019","2023"], a:3},
+{q:"Who has most IPL ducks?", o:["Rohit","Kohli","Dhoni","Warner"], a:0},
+{q:"Which IPL match had highest run chase?", o:["RR vs KKR","PBKS vs KKR","MI vs RR","LSG vs CSK"], a:1},
+{q:"Which team had orange cap + purple cap same season?", o:["CSK","MI","SRH","GT"], a:2},
+{q:"Who scored most IPL runs in playoffs?", o:["Dhoni","Kohli","Raina","Rohit"], a:2},
+],
+
+extreme: [
+{q:"Who won IPL final 2023 Player of Match?", o:["Jadeja","Gill","Dhoni","Conway"], a:0},
+{q:"Lowest successful IPL defense?", o:["RR","CSK","SRH","MI"], a:0},
+{q:"Which IPL season had super over final?", o:["2009","2010","2014","2020"], a:1},
+{q:"Who bowled last ball in IPL 2019 final?", o:["Malinga","Bumrah","Bravo","Chahar"], a:0},
+{q:"Which team has best win %?", o:["CSK","MI","GT","RR"], a:0},
+{q:"Who has most catches in IPL history?", o:["Raina","Karthik","Rohit","ABD"], a:0},
+{q:"First foreign IPL captain?", o:["Warne","McCullum","Gayle","Ponting"], a:0},
+{q:"Which IPL match had first super over?", o:["RR vs KKR","CSK vs KXIP","MI vs SRH","RCB vs KKR"], a:1},
+{q:"Who hit winning runs in IPL 2008 final?", o:["Sohail Tanvir","Warne","Pathan","Smith"], a:1},
+{q:"Who captained most IPL matches?", o:["Dhoni","Rohit","Kohli","Gambhir"], a:0},
+// +10
+{q:"Who won Purple Cap 2023?", o:["Shami","Chahal","Bumrah","Rashid"], a:0},
+{q:"Which team won IPL after qualifier loss?", o:["MI","CSK","GT","KKR"], a:1},
+{q:"Who scored most IPL runs in finals?", o:["Raina","Dhoni","Kohli","Rohit"], a:0},
+{q:"Which team never finished last?", o:["CSK","MI","KKR","RR"], a:0},
+{q:"Which season used UAE bio bubble?", o:["2020","2021","2019","2018"], a:0},
+{q:"Who bowled first IPL ball?", o:["Praveen Kumar","Lee","McGrath","Zaheer"], a:0},
+{q:"Most runs in IPL powerplay season?", o:["Warner","Gill","Buttler","Gayle"], a:3},
+{q:"Which final had rain interruption longest?", o:["2023","2014","2019","2020"], a:0},
+{q:"Who won IPL Emerging Player most?", o:["Gill","Pant","Iyer","Samson"], a:0},
+{q:"Only team to win IPL at home final?", o:["CSK","MI","RR","KKR"], a:0},
+]
+};
+
+function showLevels(){
+  home.style.display="none";
+  levels.style.display="block";
 }
 
-function createBoard() {
-  boardDiv.innerHTML = "";
-  board.forEach((_, i) => {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.dataset.index = i;
-    cell.onclick = handleMove;
-    boardDiv.appendChild(cell);
+function startQuiz(lvl){
+  level=lvl;
+  questions=[...questionBank[lvl]].sort(()=>0.5-Math.random()).slice(0,10);
+  index=0; score=0;
+  levels.style.display="none";
+  quiz.style.display="block";
+  loadQuestion();
+}
+
+function loadQuestion(){
+  clearInterval(timer);
+  timeLeft=timings[level];
+  const q=questions[index];
+  qCount.innerText=`Q ${index+1}/10`;
+  scoreBox.innerText=`Score: ${score}`;
+  question.innerText=q.q;
+  options.innerHTML="";
+  q.o.forEach((opt,i)=>{
+    const d=document.createElement("div");
+    d.className="option";
+    d.innerText=opt;
+    d.onclick=()=>answer(i);
+    options.appendChild(d);
   });
+  timerBox();
 }
 
-function handleMove(e) {
-  const idx = e.target.dataset.index;
-  if (!gameActive || board[idx]) return;
+function timerBox(){
+  timer=setInterval(()=>{
+    timerDiv.innerText=`⏱ ${timeLeft}s`;
+    timeLeft--;
+    if(timeLeft<0){ next(); }
+  },1000);
+}
 
-  makeMove(idx, currentPlayer);
-
-  if (checkWin(currentPlayer)) {
-    statusText.textContent = `${currentPlayer} Wins 🎉`;
-    gameActive = false;
-    return;
+function answer(i){
+  if(i===questions[index].a){
+    score+=Math.max(0,timeLeft)*multiplier[level];
   }
-
-  if (isDraw()) {
-    statusText.textContent = "Draw 😐";
-    gameActive = false;
-    return;
-  }
-
-  currentPlayer = currentPlayer === "X" ? "O" : "X";
-  statusText.textContent = `Player ${currentPlayer} turn`;
-
-  if (mode === "single" && currentPlayer === "O") {
-    setTimeout(computerMove, 400);
-  }
+  next();
 }
 
-function makeMove(index, player) {
-  board[index] = player;
-  document.querySelector(`[data-index='${index}']`).textContent = player;
+function next(){
+  clearInterval(timer);
+  index++;
+  if(index<10) loadQuestion();
+  else alert("Quiz Over! Score: "+score);
 }
 
-function computerMove() {
-  let move;
-  if (difficulty === "easy") move = randomMove();
-  else if (difficulty === "medium") move = smartMove();
-  else move = minimax(board, "O").index;
-
-  makeMove(move, "O");
-
-  if (checkWin("O")) {
-    statusText.textContent = "Computer Wins 🤖";
-    gameActive = false;
-    return;
-  }
-
-  currentPlayer = "X";
-  statusText.textContent = "Player X turn";
-}
-
-function randomMove() {
-  return board.map((v,i)=>v===""?i:null).filter(v=>v!==null)
-              .sort(()=>Math.random()-0.5)[0];
-}
-
-function smartMove() {
-  for (let i=0;i<9;i++) {
-    if (board[i]==="") {
-      board[i]="O";
-      if (checkWin("O")) { board[i]=""; return i; }
-      board[i]="";
-    }
-  }
-  for (let i=0;i<9;i++) {
-    if (board[i]==="") {
-      board[i]="X";
-      if (checkWin("X")) { board[i]=""; return i; }
-      board[i]="";
-    }
-  }
-  return randomMove();
-}
-
-// 🔥 MINIMAX (Hard)
-function minimax(newBoard, player) {
-  const empty = newBoard.map((v,i)=>v===""?i:null).filter(v=>v!==null);
-
-  if (checkWinner(newBoard,"X")) return {score:-10};
-  if (checkWinner(newBoard,"O")) return {score:10};
-  if (empty.length === 0) return {score:0};
-
-  let moves = [];
-
-  for (let i of empty) {
-    let move = {index:i};
-    newBoard[i]=player;
-
-    let result = minimax(newBoard, player==="O"?"X":"O");
-    move.score = result.score;
-
-    newBoard[i]="";
-    moves.push(move);
-  }
-
-  let best;
-  if (player==="O") {
-    let max = -Infinity;
-    moves.forEach(m=>{ if(m.score>max){max=m.score;best=m;}});
-  } else {
-    let min = Infinity;
-    moves.forEach(m=>{ if(m.score<min){min=m.score;best=m;}});
-  }
-  return best;
-}
-
-function checkWin(player) {
-  return winCombos.some(c => c.every(i => board[i]===player));
-}
-
-function checkWinner(b, p) {
-  return winCombos.some(c => c.every(i => b[i]===p));
-}
-
-function isDraw() {
-  return board.every(cell => cell !== "");
-}
-
-function resetGame() {
-  board = Array(9).fill("");
-  currentPlayer = "X";
-  gameActive = mode !== "";
-  statusText.textContent = mode ? "Player X turn" : "Choose mode";
-  createBoard();
-}
-
-createBoard();
+const home=document.getElementById("home");
+const levels=document.getElementById("levels");
+const quiz=document.getElementById("quiz");
+const qCount=document.getElementById("qCount");
+const timerDiv=document.getElementById("timer");
+const scoreBox=document.getElementById("score");
+const question=document.getElementById("question");
+const options=document.getElementById("options");
 </script>
+
 </body>
 </html>
