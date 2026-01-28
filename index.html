@@ -1,188 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tic Tac Toe</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1e1e2f;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<meta charset="UTF-8">
+<title>Tic Tac Toe - Difficulty Levels</title>
 
-    .container {
-      text-align: center;
-    }
+<style>
+body {
+  background: #0f172a;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-    h1 {
-      margin-bottom: 10px;
-    }
+.container {
+  text-align: center;
+}
 
-    .mode-btns button {
-      margin: 5px;
-      padding: 8px 15px;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background: #4caf50;
-      color: white;
-    }
+h1 {
+  margin-bottom: 10px;
+}
 
-    .board {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      grid-gap: 10px;
-      margin: 20px auto;
-    }
+.controls button, select {
+  padding: 8px 14px;
+  margin: 5px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
 
-    .cell {
-      width: 100px;
-      height: 100px;
-      background: #2c2c3e;
-      font-size: 40px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      border-radius: 6px;
-    }
+button {
+  background: #22c55e;
+  color: black;
+  font-weight: bold;
+}
 
-    .cell:hover {
-      background: #3c3c55;
-    }
+select {
+  background: #1e293b;
+  color: white;
+}
 
-    .status {
-      margin: 15px 0;
-      font-size: 18px;
-    }
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 10px;
+  margin: 20px auto;
+}
 
-    .reset {
-      padding: 8px 15px;
-      background: #f44336;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
+.cell {
+  width: 100px;
+  height: 100px;
+  background: #1e293b;
+  font-size: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.cell:hover {
+  background: #334155;
+}
+
+.status {
+  margin: 10px;
+  font-size: 18px;
+}
+</style>
 </head>
-<body>
 
+<body>
 <div class="container">
   <h1>Tic Tac Toe</h1>
 
-  <div class="mode-btns">
-    <button onclick="setMode('single')">Single Player</button>
-    <button onclick="setMode('multi')">Multi Player</button>
+  <div class="controls">
+    <button onclick="startGame('single')">Single Player</button>
+    <button onclick="startGame('multi')">Multi Player</button>
+
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
   </div>
 
-  <div class="status" id="status">Choose a mode to start</div>
-
+  <div class="status" id="status">Choose mode</div>
   <div class="board" id="board"></div>
 
-  <button class="reset" onclick="resetGame()">Reset Game</button>
+  <button onclick="resetGame()">Reset</button>
 </div>
 
 <script>
-  const boardElement = document.getElementById("board");
-  const statusText = document.getElementById("status");
+const boardDiv = document.getElementById("board");
+const statusText = document.getElementById("status");
 
-  let board = ["", "", "", "", "", "", "", "", ""];
-  let currentPlayer = "X";
-  let gameActive = false;
-  let mode = null;
+let board = Array(9).fill("");
+let currentPlayer = "X";
+let gameActive = false;
+let mode = "";
+let difficulty = "easy";
 
-  const winPatterns = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
+const winCombos = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
 
-  function setMode(selectedMode) {
-    mode = selectedMode;
-    resetGame();
-    gameActive = true;
-    statusText.textContent = `Mode: ${mode === "single" ? "Single Player" : "Multi Player"} | Player X turn`;
+function startGame(selectedMode) {
+  mode = selectedMode;
+  difficulty = document.getElementById("difficulty").value;
+  resetGame();
+  gameActive = true;
+  statusText.textContent = `Player X turn`;
+}
+
+function createBoard() {
+  boardDiv.innerHTML = "";
+  board.forEach((_, i) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.index = i;
+    cell.onclick = handleMove;
+    boardDiv.appendChild(cell);
+  });
+}
+
+function handleMove(e) {
+  const idx = e.target.dataset.index;
+  if (!gameActive || board[idx]) return;
+
+  makeMove(idx, currentPlayer);
+
+  if (checkWin(currentPlayer)) {
+    statusText.textContent = `${currentPlayer} Wins 🎉`;
+    gameActive = false;
+    return;
   }
 
-  function createBoard() {
-    boardElement.innerHTML = "";
-    board.forEach((_, index) => {
-      const cell = document.createElement("div");
-      cell.classList.add("cell");
-      cell.dataset.index = index;
-      cell.addEventListener("click", handleCellClick);
-      boardElement.appendChild(cell);
-    });
+  if (isDraw()) {
+    statusText.textContent = "Draw 😐";
+    gameActive = false;
+    return;
   }
 
-  function handleCellClick(e) {
-    const index = e.target.dataset.index;
+  currentPlayer = currentPlayer === "X" ? "O" : "X";
+  statusText.textContent = `Player ${currentPlayer} turn`;
 
-    if (!gameActive || board[index] !== "") return;
+  if (mode === "single" && currentPlayer === "O") {
+    setTimeout(computerMove, 400);
+  }
+}
 
-    board[index] = currentPlayer;
-    e.target.textContent = currentPlayer;
+function makeMove(index, player) {
+  board[index] = player;
+  document.querySelector(`[data-index='${index}']`).textContent = player;
+}
 
-    if (checkWin()) {
-      statusText.textContent = `Player ${currentPlayer} Wins 🎉`;
-      gameActive = false;
-      return;
+function computerMove() {
+  let move;
+  if (difficulty === "easy") move = randomMove();
+  else if (difficulty === "medium") move = smartMove();
+  else move = minimax(board, "O").index;
+
+  makeMove(move, "O");
+
+  if (checkWin("O")) {
+    statusText.textContent = "Computer Wins 🤖";
+    gameActive = false;
+    return;
+  }
+
+  currentPlayer = "X";
+  statusText.textContent = "Player X turn";
+}
+
+function randomMove() {
+  return board.map((v,i)=>v===""?i:null).filter(v=>v!==null)
+              .sort(()=>Math.random()-0.5)[0];
+}
+
+function smartMove() {
+  for (let i=0;i<9;i++) {
+    if (board[i]==="") {
+      board[i]="O";
+      if (checkWin("O")) { board[i]=""; return i; }
+      board[i]="";
     }
-
-    if (board.every(cell => cell !== "")) {
-      statusText.textContent = "It's a Draw 😐";
-      gameActive = false;
-      return;
-    }
-
-    currentPlayer = currentPlayer === "X" ? "O" : "X";
-    statusText.textContent = `Player ${currentPlayer} turn`;
-
-    if (mode === "single" && currentPlayer === "O") {
-      setTimeout(computerMove, 500);
+  }
+  for (let i=0;i<9;i++) {
+    if (board[i]==="") {
+      board[i]="X";
+      if (checkWin("X")) { board[i]=""; return i; }
+      board[i]="";
     }
   }
+  return randomMove();
+}
 
-  function computerMove() {
-    let emptyCells = board
-      .map((val, idx) => val === "" ? idx : null)
-      .filter(v => v !== null);
+// 🔥 MINIMAX (Hard)
+function minimax(newBoard, player) {
+  const empty = newBoard.map((v,i)=>v===""?i:null).filter(v=>v!==null);
 
-    let randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    board[randomIndex] = "O";
-    document.querySelector(`[data-index='${randomIndex}']`).textContent = "O";
+  if (checkWinner(newBoard,"X")) return {score:-10};
+  if (checkWinner(newBoard,"O")) return {score:10};
+  if (empty.length === 0) return {score:0};
 
-    if (checkWin()) {
-      statusText.textContent = "Computer Wins 🤖";
-      gameActive = false;
-      return;
-    }
+  let moves = [];
 
-    currentPlayer = "X";
-    statusText.textContent = "Player X turn";
+  for (let i of empty) {
+    let move = {index:i};
+    newBoard[i]=player;
+
+    let result = minimax(newBoard, player==="O"?"X":"O");
+    move.score = result.score;
+
+    newBoard[i]="";
+    moves.push(move);
   }
 
-  function checkWin() {
-    return winPatterns.some(pattern =>
-      pattern.every(index => board[index] === currentPlayer)
-    );
+  let best;
+  if (player==="O") {
+    let max = -Infinity;
+    moves.forEach(m=>{ if(m.score>max){max=m.score;best=m;}});
+  } else {
+    let min = Infinity;
+    moves.forEach(m=>{ if(m.score<min){min=m.score;best=m;}});
   }
+  return best;
+}
 
-  function resetGame() {
-    board = ["", "", "", "", "", "", "", "", ""];
-    currentPlayer = "X";
-    gameActive = mode !== null;
-    statusText.textContent = mode ? `Player X turn` : "Choose a mode to start";
-    createBoard();
-  }
+function checkWin(player) {
+  return winCombos.some(c => c.every(i => board[i]===player));
+}
 
+function checkWinner(b, p) {
+  return winCombos.some(c => c.every(i => b[i]===p));
+}
+
+function isDraw() {
+  return board.every(cell => cell !== "");
+}
+
+function resetGame() {
+  board = Array(9).fill("");
+  currentPlayer = "X";
+  gameActive = mode !== "";
+  statusText.textContent = mode ? "Player X turn" : "Choose mode";
   createBoard();
-</script>
+}
 
+createBoard();
+</script>
 </body>
 </html>
